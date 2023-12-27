@@ -3,6 +3,14 @@
 #include <stdlib.h>
 #include <time.h>
 
+//~ Sometimes, NN's fail to come up with a model for XOR gate, for instance, once my output looked like this:
+//~         0 ^ 0 = 0.015308
+//~         0 ^ 1 = 0.982008
+//~         1 ^ 0 = 0.499481
+//~         1 ^ 1 = 0.500578
+//~ This is not uncommon, it depends on the initialization of the weights.
+//~ Perhaps, we need to introduce more neurons, idk...
+
 typedef struct {
   float or_w1;
   float or_w2;
