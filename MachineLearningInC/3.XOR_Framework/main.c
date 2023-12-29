@@ -2,15 +2,15 @@
 #include "nn.h"
 #include <time.h>
 
-//~   x?-->?--w?-?b?(a?)
+//~   x1-->?--w1-?b1(a1)
 //~         \  /
-//~          \w?
+//~          \w3
 //~         / \
-//~        /   w?
-//~  x?-->?--w?--?b?(a?)
+//~        /   w2
+//~  x?-->?--w4--?b2(a2)
 
-//~   a? = x?w? + x?w? + b?
-//~   a? = x?w? + x?w? + b?
+//~   a1 = x1w1 + x2w3 + b1
+//~   a2 = x1w2 + x2w4 + b2
 
 typedef struct {
   // First (input) Layer
