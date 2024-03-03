@@ -19,7 +19,7 @@
 #define NN_ASSERT assert
 #endif //! NN_ASSERT
 
-typedef struct Mat{
+typedef struct Mat {
   size_t rows;
   size_t cols;
   size_t stride;
@@ -38,14 +38,179 @@ Mat mat_row(Mat m, size_t row);
 void mat_copy(Mat dst, Mat src);
 void mat_dot(Mat dst, Mat a, Mat b);
 void mat_sum(Mat dst, Mat a);
-void mat_print(Mat m, char *);
 void mat_sig(Mat m);
-#define MAT_PRINT(m) mat_print(m, #m) // doing #, stringifies it
+void mat_print(Mat m, char*);
+#define MAT_PRINT(m) mat_print(m, #m);
+
+void nn_print(NN m, char *);
+#define NN_PRINT(nn) nn_print(nn, #nn) // doing #, stringifies it
 
 #endif //! NN_H_
 
 #define NN_IMPLEMENTATION // remove later or code crashes
 #ifdef NN_IMPLEMENTATION
+
+//~   x1-->●--w1-●b1(a1)
+//~         \  /
+//~          \w3
+//~         / \
+//~        /   w2
+//~  x?-->●--w4--●b2(a2)
+
+//~   a1 = x1w1 + x2w3 + b1
+//~   a2 = x1w2 + x2w4 + b2
+
+typedef struct {
+
+  size_t count; // the amount of inner layers, w/o the input layer
+  Mat *ws;      // weights
+  Mat *bs;      // biases
+  Mat *as;      // activations, the amount of activations in count + 1
+
+  // There is one more activation layer in the NN, which is the input layer
+  // First (input) Layer
+  //% Mat a0;
+  // Second Layer
+  //% Mat w1, b1, a1;
+  // Third (output) Layer
+  //% Mat w2, b2, a2;
+} NN;
+
+NN nn_alloc(size_t *, size_t);
+
+#define ARRAY_LEN(xs) sizeof((xs)) / sizeof((xs)[0])
+
+// size_t arch[] = {2, 2, 1};
+// NN nn = nn_alloc(arch, ARRAY_LEN(arch));
+
+NN nn_alloc(size_t *architecture, size_t arch_count) {
+
+  NN_ASSERT(arch_count > 0); //~ This is because there must be some number of inputs.
+
+  NN nn;
+
+  nn.count = arch_count - 1; // count doesn't include the input layer, but arch_count does include the input layer
+
+  nn.ws = NN_MALLOC(sizeof(*nn.ws) * nn.count);
+  NN_ASSERT(nn.ws != NULL);
+  nn.bs = NN_MALLOC(sizeof(*nn.bs) * nn.count);
+  NN_ASSERT(nn.bs != NULL);
+  nn.as = NN_MALLOC(sizeof(*nn.as) * (nn.count + 1));
+  NN_ASSERT(nn.as != NULL);
+
+  nn.as[0] = mat_alloc(1, architecture[0]); //~ The first(0-th) activation layer will be equal to the number of inputs
+
+  for (size_t i = 1; i < arch_count; i++) {
+    //~ the first weight matrix will have the same number of rows as the number of cols in the 0th activation or input matrix, and the number of colums will be mentioned in the architecture
+    nn.ws[i - 1] = mat_alloc(nn.as[i - 2].cols, architecture[i]);
+    nn.bs[i - 1] = mat_alloc(1, architecture[i]);
+    nn.as[i] = mat_alloc(1, architecture[i]);
+  }
+
+  return nn;
+}
+
+float cost(XOR m, Mat ti, Mat to) { // ti == training input, to == training output
+  assert(ti.rows == to.rows);
+  assert(to.cols == m.a2.cols);
+  size_t n = ti.rows;
+
+  float c = 0;
+  for (size_t i = 0; i < n; i++) {
+    Mat x = mat_row(ti, i);
+    Mat y = mat_row(to, i);
+
+    mat_copy(m.a0, mat_row(ti, i));
+    forward_xor(m);
+
+    size_t q = to.cols;
+    for (size_t j = 0; j < q; j++) {
+      float d = MAT_AT(m.a2, 0, j) - MAT_AT(y, 0, j);
+      c += d * d;
+    }
+  }
+
+  return c / n;
+}
+
+void forward_xor(XOR m) {
+  mat_dot(m.a1, m.a0, m.w1);
+  mat_sum(m.a1, m.b1);
+  mat_sig(m.a1);
+
+  mat_dot(m.a2, m.a1, m.w2);
+  mat_sum(m.a2, m.b2);
+  mat_sig(m.a2);
+}
+
+void finite_diff(XOR m, XOR g, float eps, Mat ti, Mat to) { // m is the model, g is the gradient for the model
+  float saved;
+
+  float c = cost(m, ti, to);
+
+  for (size_t i = 0; i < m.w1.rows; i++) {
+    for (size_t j = 0; j < m.w1.cols; j++) {
+      saved = MAT_AT(m.w1, i, j);
+      MAT_AT(m.w1, i, j) += eps;
+      MAT_AT(g.w1, i, j) = (cost(m, ti, to) - c) / eps;
+      MAT_AT(m.w1, i, j) = saved;
+    }
+  }
+
+  for (size_t i = 0; i < m.b1.rows; i++) {
+    for (size_t j = 0; j < m.b1.cols; j++) {
+      saved = MAT_AT(m.b1, i, j);
+      MAT_AT(m.b1, i, j) += eps;
+      MAT_AT(g.b1, i, j) = (cost(m, ti, to) - c) / eps;
+      MAT_AT(m.b1, i, j) = saved;
+    }
+  }
+
+  for (size_t i = 0; i < m.w2.rows; i++) {
+    for (size_t j = 0; j < m.w2.cols; j++) {
+      saved = MAT_AT(m.w2, i, j);
+      MAT_AT(m.w2, i, j) += eps;
+      MAT_AT(g.w2, i, j) = (cost(m, ti, to) - c) / eps;
+      MAT_AT(m.w2, i, j) = saved;
+    }
+  }
+
+  for (size_t i = 0; i < m.b2.rows; i++) {
+    for (size_t j = 0; j < m.b2.cols; j++) {
+      saved = MAT_AT(m.b2, i, j);
+      MAT_AT(m.b2, i, j) += eps;
+      MAT_AT(g.b2, i, j) = (cost(m, ti, to) - c) / eps;
+      MAT_AT(m.b2, i, j) = saved;
+    }
+  }
+}
+
+void xor_learn(XOR m, XOR g, float rate) {
+
+  for (size_t i = 0; i < m.w1.rows; i++) {
+    for (size_t j = 0; j < m.w1.cols; j++) {
+      MAT_AT(m.w1, i, j) -= rate * MAT_AT(g.w1, i, j);
+    }
+  }
+
+  for (size_t i = 0; i < m.b1.rows; i++) {
+    for (size_t j = 0; j < m.b1.cols; j++) {
+      MAT_AT(m.b1, i, j) -= rate * MAT_AT(g.b1, i, j);
+    }
+  }
+
+  for (size_t i = 0; i < m.w2.rows; i++) {
+    for (size_t j = 0; j < m.w2.cols; j++) {
+      MAT_AT(m.w2, i, j) -= rate * MAT_AT(g.w2, i, j);
+    }
+  }
+
+  for (size_t i = 0; i < m.b2.rows; i++) {
+    for (size_t j = 0; j < m.b2.cols; j++) {
+      MAT_AT(m.b2, i, j) -= rate * MAT_AT(g.b2, i, j);
+    }
+  }
+}
 
 float rand_float(void) {
   return ((float)rand() / RAND_MAX);
@@ -95,11 +260,10 @@ void mat_dot(Mat dst, Mat a, Mat b) {
 
 Mat mat_row(Mat m, size_t row) {
   return (Mat){
-    .rows = 1,
-    .cols = m.cols,
-    .stride = m.stride,
-    .es = &MAT_AT(m, row, 0)
-  };
+      .rows = 1,
+      .cols = m.cols,
+      .stride = m.stride,
+      .es = &MAT_AT(m, row, 0)};
 }
 
 void mat_copy(Mat dst, Mat src) {
@@ -149,6 +313,14 @@ void mat_rand(Mat m, float low, float high) {
       MAT_AT(m, i, j) = rand_float() * (high - low) + low;
     }
   }
+}
+
+void nn_print(NN nn, char *name){
+  printf("%s = [\n", name);
+
+  
+
+  printf("     ]\n");
 }
 
 #endif // NN_IMPLEMENTATION

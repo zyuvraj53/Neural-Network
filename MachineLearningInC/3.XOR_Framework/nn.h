@@ -44,7 +44,7 @@ void mat_sig(Mat m);
 
 #endif //! NN_H_
 
-#define NN_IMPLEMENTATION // remove later or code crashes
+//#define NN_IMPLEMENTATION // remove later or code crashes
 #ifdef NN_IMPLEMENTATION
 
 float rand_float(void) {
