@@ -1,16 +1,16 @@
-CC=g++
+CC=gcc
 OPT=-O3
 CFLAGS=-Wall -Wextra -Wshadow $(OPT)
-CPPFILES=twice.c++
-OBJECTS=twice.o
+CPPFILES=main.c
+OBJECTS=main.o
 
 output: $(OBJECTS)
 	$(CC) $(CFAGS) $(CPPFILES) -o output
 
-twice.o: twice.c++
-	$(CC) $(CFLAGS) -c twice.c++
+ main.o: main.c
+	$(CC) $(CFLAGS) -c main.c
 
-%.o: %.c++ %.hpp
+%.o: %.c %.h
 	$(CC) $(CFLAGS) -c $<
 
 clean:
