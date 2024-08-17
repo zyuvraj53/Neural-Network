@@ -5,7 +5,7 @@ CPPFILES=main.c
 OBJECTS=main.o
 
 output: $(OBJECTS)
-	$(CC) $(CFAGS) $(CPPFILES) -o output
+	$(CC) $(CFAGS) $(CPPFILES) -o output.out -lm
 
  main.o: main.c
 	$(CC) $(CFLAGS) -c main.c
