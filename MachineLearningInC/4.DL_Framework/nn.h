@@ -77,6 +77,7 @@ typedef struct {
 void nn_print(NN m, char *);
 #define NN_PRINT(nn) nn_print(nn, #nn) // doing #, stringifies it
 void forward_xor(NN);
+void nn_rand(NN m, float low, float high);
 
 NN nn_alloc(size_t *, size_t);
 
@@ -330,6 +331,23 @@ void nn_print(NN nn, char *name) {
   }
 
   printf("]\n");
+}
+
+void nn_rand(NN nn, float low, float high){
+
+  for(int i = 0; i < nn.count; i++){ // iterate through all the layers
+    mat_rand(nn.ws[i], low, high);
+    mat_rand(nn.bs[i], low, high);
+  }
+
+}
+
+void nn_forward(NN nn){
+  for(size_t i = 0; i < nn.count; i++){
+    mat_dot(nn.as[i + 1], nn.as[i], nn.ws[i]);
+    mat_sum(nn.as[i + 1], nn.bs[i]);
+    mat_sig(nn.as[i + 1]);
+  }
 }
 
 #endif // NN_IMPLEMENTATION
