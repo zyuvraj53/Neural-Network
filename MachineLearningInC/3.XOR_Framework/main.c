@@ -184,7 +184,7 @@ int main(void) {
 
   printf("%f\n", cost(m, ti, to));
 
-  for (size_t i = 0; i < 100*1000; i++) {
+  for (size_t i = 0; i < 100 * 1000; i++) {
     finite_diff(m, g, eps, ti, to);
     xor_learn(m, g, rate);
   }
@@ -192,8 +192,8 @@ int main(void) {
 
   printf("-------------\n");
 
-  for(int i = 0; i < 2; i++){
-    for(int j = 0; j < 2; j++){
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 2; j++) {
 
       MAT_AT(m.a0, 0, 0) = i;
       MAT_AT(m.a0, 0, 1) = j;
@@ -201,7 +201,7 @@ int main(void) {
       forward_xor(m);
 
       float y = *(m.a2).es;
-      
+
       printf("%d ^ %d = %f\n", i, j, y);
     }
   }

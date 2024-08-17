@@ -1,9 +1,20 @@
 #ifndef NN_H_
 #define NN_H_
 
-//% float d[] = {0, 1, 0, 1}; // d for data
+//% float d[] = {0, 1, 0, 1}; // d is the pointer to the linear memory
 //%     Mat m = {.rows = 2, .cols = 2, .es = d};
 //% or: Mat m = {.rows = 4, .cols = 1, .es = d};
+//% makes a one-dimensional matrix into m*n dimensions
+
+//%   float d[] = {
+//%     0,0,0,
+//%     0,1,0,
+//%     1,0,0,
+//%     1,1,1,
+//%   };
+
+//% Mat di = {.rows = 4, .cols = 2, .stride = 3, .es = &d[0]}; // di === data input
+//% Mat do = {.rows = 4, .cols = 1, .stride = 3, .es = &d[3]}; // do === data output
 
 #include <math.h>
 #include <stddef.h>
@@ -23,7 +34,7 @@ typedef struct Mat{
   size_t rows;
   size_t cols;
   size_t stride;
-  float *es;
+  float *es; //~ pointer to the beginning of the matrix that contains the floats
 } Mat;
 
 #define MAT_AT(m, i, j) (m).es[(i) * (m).stride + (j)]
@@ -31,8 +42,8 @@ typedef struct Mat{
 float rand_float(void);
 float sigmoidf(float);
 
-Mat mat_alloc(size_t rows, size_t cols);
-void mat_rand(Mat m, float low, float high);
+Mat mat_alloc(size_t rows, size_t cols); //~ uses malloc, and dynamically allocates floats
+void mat_rand(Mat m, float low, float high); //~ 
 void mat_fill(Mat m, float x);
 Mat mat_row(Mat m, size_t row);
 void mat_copy(Mat dst, Mat src);
